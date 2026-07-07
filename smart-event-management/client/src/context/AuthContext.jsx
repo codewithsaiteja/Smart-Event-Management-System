@@ -13,17 +13,50 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]       = useState(null);
+  const [loading, setLoading] = useState(true); // true while we validate the token
 
+  /**
+   * On mount: check whether a stored token is still valid by calling the
+   * profile endpoint.  This is the ONLY place we restore session state.
+   *
+   * Why not just trust localStorage?
+   *   localStorage is never cleared automatically — a user who logged in a
+   *   week ago still has a stale token entry.  Blindly reading it means the
+   *   navbar shows "Admin User" on every cold page load until the component
+   *   re-renders, even if the token has expired.
+   *
+   * Flow:
+   *   1. token found in localStorage → ask the server if it is still valid
+   *   2. server returns 200 → set user from server response (authoritative)
+   *   3. server returns 401  → token expired; wipe storage, stay as guest
+   *   4. no token in localStorage → stay as guest immediately
+   */
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const validateSession = async () => {
+      const token = localStorage.getItem('token');
 
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+      if (!token) {
+        // No token at all — definitely a guest
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Verify token with the server — throws if 401
+        const response = await authService.getProfile();
+        setUser(response.user);          // trust server, not localStorage
+      } catch {
+        // Token is invalid or expired — clear everything and treat as guest
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    validateSession();
   }, []);
 
   const register = async (data) => {
@@ -57,12 +90,12 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout();
+    } catch {
+      // Even if the server call fails, always clear local state
+    } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
-      toast.success('Logged out successfully');
-    } catch (error) {
-      toast.error('Logout failed');
     }
   };
 
@@ -82,5 +115,9 @@ export const AuthProvider = ({ children }) => {
     isAdmin: user?.role === 'admin',
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
