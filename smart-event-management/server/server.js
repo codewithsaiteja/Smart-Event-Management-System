@@ -5,10 +5,14 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const connectDatabase = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
+const ensureDemoUsers = require('./utils/ensureDemoUsers');
 
 dotenv.config();
 
-connectDatabase();
+// Connect to database then ensure demo accounts exist
+connectDatabase().then(() => {
+  ensureDemoUsers();
+});
 
 const app = express();
 
