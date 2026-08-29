@@ -23,17 +23,7 @@ const Navbar = () => {
     navigate('/');          // always return to public home after logout
   };
 
-  /**
-   * Render the right-side auth section of the navbar.
-   *
-   * During the initial token-validation request (loading === true) we render
-   * nothing in the auth slot.  This prevents any flash of "Admin User /
-   * Logout" on cold page loads while the server check is in flight.
-   *
-   * Guest       → Login  +  Register
-   * Logged-in User  → Dashboard  +  Profile (name)  +  Logout
-   * Logged-in Admin → Dashboard  +  Admin Dashboard  +  name  +  Logout
-   */
+  
   const renderDesktopAuth = () => {
     if (loading) return null; // no flash while validating token
 

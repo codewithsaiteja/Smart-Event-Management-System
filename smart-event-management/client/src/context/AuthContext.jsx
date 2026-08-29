@@ -16,22 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true); // true while we validate the token
 
-  /**
-   * On mount: check whether a stored token is still valid by calling the
-   * profile endpoint.  This is the ONLY place we restore session state.
-   *
-   * Why not just trust localStorage?
-   *   localStorage is never cleared automatically — a user who logged in a
-   *   week ago still has a stale token entry.  Blindly reading it means the
-   *   navbar shows "Admin User" on every cold page load until the component
-   *   re-renders, even if the token has expired.
-   *
-   * Flow:
-   *   1. token found in localStorage → ask the server if it is still valid
-   *   2. server returns 200 → set user from server response (authoritative)
-   *   3. server returns 401  → token expired; wipe storage, stay as guest
-   *   4. no token in localStorage → stay as guest immediately
-   */
+
   useEffect(() => {
     const validateSession = async () => {
       const token = localStorage.getItem('token');
